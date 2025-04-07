@@ -8,4 +8,3 @@ struct shared_use_st {
     int written_by_you;
     char some_text[10][TEXT_SZ];
 };
-
