@@ -50,25 +50,30 @@ int main()
 
     shared_stuff = (struct shared_use_st *)shared_memory;
     shared_stuff->written_by_you = 0;
+    shared_stuff->pos_c = 0;
+
     while(running) {
         // substituir este if para usar semáforos
         if (semaphore_down(semid_cheio)) {
-            printf("You wrote: %s", shared_stuff->some_text);
+            int pos = shared_stuff->pos_c;
+            printf("You wrote: %s", shared_stuff->some_text[pos]);
             sleep( rand() % 4 ); /* make the other process wait for us ! */
             shared_stuff->written_by_you = 0;
             semaphore_up(semid_vazio);
-            if (strncmp(shared_stuff->some_text, "end", 3) == 0) {
+            if (strncmp(shared_stuff->some_text[pos], "end", 3) == 0) {
                 running = 0;
             }
+            shared_stuff->pos_c = (pos + 1) % 10;
+        } else {
+            sleep(1);
+            break;
         }
     }
 
 /* Lastly, the shared memory is detached and then deleted. */
 
-    shmdt(shared_memory); 
-
-    shmctl(shmid, IPC_RMID, 0); 
-
+    shmdt(shared_memory);
+    shmctl(shmid, IPC_RMID, 0);
     exit(EXIT_SUCCESS);
 }
 
@@ -76,7 +81,7 @@ static int set_semvalue(int sem_id)
 {
     union semun sem_union;
 
-    sem_union.val = 1;
+    sem_union.val = 10;
     if (semctl(sem_id, 0, SETVAL, sem_union) == -1) return(0);
     return(1);
 }

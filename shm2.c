@@ -40,6 +40,9 @@ int main()
     printf("Memory attached at %X\n", (int)shared_memory);
 
     shared_stuff = (struct shared_use_st *)shared_memory;
+    shared_stuff->written_by_you = 0;
+    shared_stuff->pos_p = 0;
+
     while (running)
     {
         while (!semaphore_down(semid_vazio))
@@ -49,8 +52,9 @@ int main()
         }
         printf("Enter some text: ");
         fgets(buffer, BUFSIZ, stdin);
-
-        strncpy(shared_stuff->some_text, buffer, TEXT_SZ);
+        int pos = shared_stuff->pos_p;
+        strncpy(shared_stuff->some_text[pos], buffer, TEXT_SZ);
+        shared_stuff->pos_p = (pos + 1) % 10;
         shared_stuff->written_by_you = 1;
         semaphore_up(semid_cheio);
 
@@ -61,6 +65,8 @@ int main()
     }
 
     shmdt(shared_memory);
+    del_semvalue(semid_cheio);
+    del_semvalue(semid_vazio);
     exit(EXIT_SUCCESS);
 }
 
@@ -83,7 +89,6 @@ static void del_semvalue(int sem_id)
     if (semctl(sem_id, 0, IPC_RMID, sem_union) == -1)
         fprintf(stderr, "Failed to delete semaphore\n");
 }
-
 
 static int semaphore_down(int sem_id)
 {
