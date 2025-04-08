@@ -15,11 +15,12 @@
 
 static int semaphore_down(int);
 static int semaphore_up(int);
-static int set_semvalue(int);
+static int set_semvalue(int, int);
 static void del_semvalue(int);
 
 static int semid_cheio;
 static int semid_vazio;
+static int semid_mutex;
 
 int main()
 {
@@ -34,8 +35,9 @@ int main()
 
     semid_cheio = semget((key_t)3030, 1, 0666 | IPC_CREAT);
     semid_vazio = semget((key_t)3060, 1, 0666 | IPC_CREAT);
+    semid_mutex = semget((key_t)3090, 1, 0666 | IPC_CREAT);
 
-    set_semvalue(semid_vazio);
+    set_semvalue(semid_vazio, 10);
 
 /* We now make the shared memory accessible to the program. */
 
@@ -55,6 +57,7 @@ int main()
     while(running) {
         // substituir este if para usar semáforos
         if (semaphore_down(semid_cheio)) {
+            semaphore_down(semid_mutex);
             int pos = shared_stuff->pos_c;
             printf("You wrote: %s", shared_stuff->some_text[pos]);
             sleep( rand() % 4 ); /* make the other process wait for us ! */
@@ -64,6 +67,7 @@ int main()
                 running = 0;
             }
             shared_stuff->pos_c = (pos + 1) % 10;
+            semaphore_up(semid_mutex);
         } else {
             sleep(1);
             break;
@@ -77,11 +81,11 @@ int main()
     exit(EXIT_SUCCESS);
 }
 
-static int set_semvalue(int sem_id)
+static int set_semvalue(int sem_id, int value)
 {
     union semun sem_union;
 
-    sem_union.val = 10;
+    sem_union.val = value;
     if (semctl(sem_id, 0, SETVAL, sem_union) == -1) return(0);
     return(1);
 }
