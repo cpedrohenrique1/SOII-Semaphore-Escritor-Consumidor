@@ -14,11 +14,12 @@
 
 static int semaphore_down(int);
 static int semaphore_up(int);
-static int set_semvalue(int);
+static int set_semvalue(int, int);
 static void del_semvalue(int);
 
 static int semid_cheio;
 static int semid_vazio;
+static int semid_mutex;
 
 int main()
 {
@@ -30,10 +31,12 @@ int main()
 
     semid_cheio = semget((key_t)3030, 1, 0666 | IPC_CREAT);
     semid_vazio = semget((key_t)3060, 1, 0666 | IPC_CREAT);
+    semid_mutex = semget((key_t)3090, 1, 0666 | IPC_CREAT);
 
     shmid = shmget((key_t)1234, sizeof(struct shared_use_st), 0666 | IPC_CREAT);
 
-    set_semvalue(semid_cheio);
+    set_semvalue(semid_cheio, 0);
+    set_semvalue(semid_mutex, 1);
 
     shared_memory = shmat(shmid, (void *)0, 0);
 
@@ -70,11 +73,11 @@ int main()
     exit(EXIT_SUCCESS);
 }
 
-static int set_semvalue(int sem_id)
+static int set_semvalue(int sem_id, int value)
 {
     union semun sem_union;
 
-    sem_union.val = 0;
+    sem_union.val = value;
     if (semctl(sem_id, 0, SETVAL, sem_union) == -1) return(0);
     return(1);
 }
